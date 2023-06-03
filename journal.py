@@ -1,13 +1,9 @@
 # New journal app 
 
 from datetime import datetime
-from os.path import *
-from os import environ
-from pathlib import *
-from sys import *
+import os, os.path, pathlib, json 
 
-__version__   = '1.0.0'
-__author__    = 'duncan.hardy'
+__version__   = '1.0.1'
 
 # The inevitable refactor to a class 
 # def init():
@@ -17,15 +13,23 @@ __author__    = 'duncan.hardy'
 
 def journal(): 
 
+    # TODO: wrap in function 
     home = get_home_directory()
     filepath = check_entry_write_dir_exists(home)
+    setup_dir = pathlib.Path(f'{home}/Journal/Setup') 
+
+    if not check_for_config(setup_dir):    
+        journal_config = set_config()
+        write_config(setup_dir, journal_config)
+    else: 
+        journal_config = read_config(setup_dir)
 
     welcome()
 
     entries = []
 
     # add date time and author to top of entry file
-    entries.append(f'{datetime.now()} {__version__} {__author__}\n')
+    entries.append(f"{datetime.now()} {__version__} {journal_config['author']}\n")
     running = True 
     try:
         while running:
@@ -45,6 +49,38 @@ def journal():
     except KeyboardInterrupt:
         print("Good bye!")
 
+def check_for_config(in_path): 
+
+    if not in_path.exists():
+        in_path.mkdir()
+        return False
+    
+    return True
+
+def set_config():
+    journal_config = {}
+
+    print("No config file detected, performing some initial setup...")
+    
+    journal_config['author'] = input("Who is the author of this journal?")
+    journal_config['subject'] = input("Is there a particular subject that you're writing about?")
+    journal_config['version'] = __version__
+    journal_config['first_entry'] = str(datetime.now())
+    journal_config['last_entry'] = ''
+    journal_config['total_entries'] = 0
+
+    return journal_config
+
+def write_config(in_path, in_config_data):
+
+    with open(f'{in_path}/setup.config', 'w') as config_file: 
+        json.dump(in_config_data, config_file)
+
+def read_config(in_path):
+    with open(f'{in_path}/setup.config', 'r') as config_file: 
+        config_data = json.load(config_file)
+
+    return config_data
 
 def welcome(): 
     welcome_message = "Welcome to your Journal!"
@@ -61,16 +97,16 @@ def format_timestamp(in_timestamp):
 
 
 def get_home_directory():
-        username = environ['USERNAME']
-        home = expanduser(f"~{username}")
-        return home
+    username = os.environ['USERNAME']
+    home = os.path.expanduser(f"~{username}")
+    return home
 
 def check_entry_write_dir_exists(home_directory):
-    write_path = Path(f'{home_directory}/Journal')
-    if (not write_path.exists()):
+    write_path = pathlib.Path(f'{home_directory}/Journal/Entries')
+    if not write_path.exists():
         write_path.mkdir()
         print("Write directory does not exist!")
-        print(f"Created {write_path}")
+        print(f"Created {write_path}.")
         return write_path
     else:
         print(f"{write_path} already exists!")
