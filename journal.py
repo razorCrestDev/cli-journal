@@ -43,8 +43,16 @@ def journal():
         # just the time stamp and author value
         if (len(entries[0]) > 1):
             file_prefix = format_timestamp(str(datetime.now()))
+
+            # Update the config file meta data
+            journal_config['last_entry'] = (str(datetime.now()))
+            journal_config['total_entries'] += 1
+            
             with open(f"{filepath}/{file_prefix}_journal.txt", 'w') as outfile:
                 outfile.writelines(entries)
+            
+            # set last entry and total entries values 
+            write_config(setup_dir, journal_config)
     
     except KeyboardInterrupt:
         print("Good bye!")
