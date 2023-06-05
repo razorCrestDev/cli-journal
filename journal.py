@@ -3,7 +3,7 @@
 from datetime import datetime
 import os, os.path, pathlib, json 
 
-__version__   = '1.0.1'
+__version__   = '1.0.2'
 
 # The inevitable refactor to a class 
 # def init():
@@ -22,40 +22,32 @@ def journal():
         journal_config = set_config()
         write_config(setup_dir, journal_config)
     else: 
-        journal_config = read_config(setup_dir)
-
-    welcome()
-
-    entries = []
+        journal_config = read_config(setup_dir) 
 
     # add date time and author to top of entry file
-    entries.append(f"{datetime.now()} {__version__} {journal_config['author']}\n")
+    entries = init_entries(journal_config)
     running = True 
-    try:
-        while running:
-            entry = input(f'{datetime.now()} Journal Entry: ')
-            if len(entry):
-                entries.append(entry + '\n')
-            else: 
-                running = False
 
-        # only write out files that have more entries than 
-        # just the time stamp and author value
-        if (len(entries[0]) > 1):
-            file_prefix = format_timestamp(str(datetime.now()))
+    while running:
+        entry = input(f'{datetime.now()} Journal Entry: ')
+        if len(entry):
+            entries.append(entry + '\n')
+        else: 
+            running = False
+    # only write out files that have more entries than 
+    # just the time stamp and author value
+    if (len(entries[1]) > 1):
+        file_prefix = format_timestamp(str(datetime.now()))
 
-            # Update the config file meta data
-            journal_config['last_entry'] = (str(datetime.now()))
-            journal_config['total_entries'] += 1
-            
-            with open(f"{filepath}/{file_prefix}_journal.txt", 'w') as outfile:
-                outfile.writelines(entries)
-            
-            # set last entry and total entries values 
-            write_config(setup_dir, journal_config)
-    
-    except KeyboardInterrupt:
-        print("Good bye!")
+        # Update the config file meta data
+        journal_config['last_entry'] = (str(datetime.now()))
+        journal_config['total_entries'] += 1
+        
+        with open(f"{filepath}/{file_prefix}_journal.txt", 'w') as outfile:
+            outfile.writelines(entries)
+        
+        # set last entry and total entries values 
+        write_config(setup_dir, journal_config)    
 
 def check_for_config(in_path): 
 
@@ -94,6 +86,24 @@ def welcome():
     welcome_message = "Welcome to your Journal!"
     print(welcome_message)
 
+def main_menu():
+    selection = input("What would you like to do? n=New Entry, r=Read Entries, ctr+c=Exit: ")
+    return selection.lower()
+
+def init_entries(in_config):
+    return [f"{datetime.now()} {__version__} {in_config['author']}\n"]
+
+def read_journal(in_dir):
+    
+    lines = []
+
+    for file in in_dir.iterdir():
+        print("")
+        print("----------------------")
+        print("")
+        with open(file, 'r') as read_file:
+            for line in read_file.readlines():
+                print(line)
 
 # probably has a built in function to do this but...
 def format_timestamp(in_timestamp):
@@ -121,4 +131,21 @@ def check_entry_write_dir_exists(home_directory):
         return write_path
     
 if __name__ == '__main__': 
-    journal()
+
+    try:
+        while True:
+
+            selection = main_menu()
+            
+            if selection == 'n':
+                welcome()
+                journal()
+            elif selection == 'r':
+                entry_path = pathlib.Path(f'{get_home_directory()}/Journal/Entries')
+                read_journal(entry_path)
+            else:
+                print('Not a valid selection')
+                continue
+
+    except KeyboardInterrupt:
+        print('Goodbye!')
